@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>فرم ثبت نام</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+<style>
+body {
+    font-family: 'Arial', sans-serif;
+    background: linear-gradient(120deg, #ff8a00, #e52e71);
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    direction: rtl;
+}
+
+.form-container {
+    background: white;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    width: 100%;
+    max-width: 400px;
+    transition: all 0.3s ease;
+}
+
+.form-container h2 {
+    text-align: center;
+    color: #333;
+    font-size: 24px;
+    margin-bottom: 20px;
+}
+
+input {
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 16px;
+}
+
+button {
+    width: 100%;
+    padding: 12px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+button:hover { background-color: #45a049; }
+
+.error {
+    color: red;
+    font-size: 14px;
+    margin-top: 10px;
+    text-align: center;
+}
+
+.form-footer {
+    text-align: center;
+    margin-top: 20px;
+}
+
+.form-footer a {
+    color: #4CAF50;
+    text-decoration: none;
+}
+
+.form-footer a:hover {
+    text-decoration: underline;
+}
+
+.info-text {
+    color: #007bff;
+    font-size: 13px;
+    cursor: pointer;
+    margin-top: 5px;
+    display: inline-block;
+}
+
+#terms-modal, #chatid-modal {
+    display: none;
+    position: fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    background: rgba(0,0,0,0.6);
+    z-index:1000;
+    justify-content:center;
+    align-items:center;
+}
+
+.modal-content {
+    background:white;
+    width: 90%;
+    max-width: 500px;
+    padding: 20px;
+    border-radius: 10px;
+    direction: rtl;
+    text-align: right;
+    max-height: 80%;
+    overflow-y: auto;
+    position: relative;
+}
+
+.modal-content h3 {
+    margin-top:0;
+}
+
+.close-modal {
+    position:absolute;
+    top:10px;
+    left:15px;
+    cursor:pointer;
+    font-weight:bold;
+}
+
+.modal-content ol, .modal-content p {
+    padding-left: 20px;
+    line-height: 1.5;
+    font-size: 14px;
+}
+
+#resend-code {
+    margin-top: 10px;
+    background:#f39c12;
+}
+</style>
+</head>
+<body>
+
+<div class="form-container" id="form-container">
+    <h2>فرم ثبت نام</h2>
+
+    <form id="register-form">
+        <input type="text" id="username" placeholder="نام کاربری" required>
+        <input type="text" id="meli_code" placeholder="کد ملی" required>
+        <input type="password" id="password" placeholder="رمز عبور" required>
+        <small style="color:#555; font-size:12px; display:block; margin-top:5px;">
+        رمز عبور باید حداقل ۸ کاراکتر، شامل حروف بزرگ و کوچک، عدد و یک کاراکتر ویژه باشد.
+        </small>
+
+        <input type="text" id="telegram-chat-id" placeholder="آیدی چت تلگرام" required>
+        <span id="chatid-info" class="info-text"><i class="fas fa-info-circle"></i> چگونه آیدی چت تلگرام خود را پیدا کنیم و ربات را شروع کنیم؟</span>
+
+        <div style="margin: 10px 0; text-align: right;">
+            <input type="checkbox" id="consent" disabled>
+            <label for="consent">با مطالعه و موافقت با <span id="show-terms" style="color:#007bff; cursor:pointer;">شرایط و ضوابط</span> موافقت می‌کنم.</label>
+        </div>
+
+        <button type="submit">ثبت نام</button>
+    </form>
+
+    <form id="verify-form" style="display:none;">
+        <input type="text" id="verification-code" placeholder="کد تلگرام را وارد کنید" required>
+        <button type="submit">تایید</button>
+        <button type="button" id="resend-code" disabled style="margin-top:10px; background:#f39c12;">ارسال مجدد کد (2:00)</button>
+    </form>
+
+    <p class="error" id="register-error"></p>
+
+    <div class="form-footer">
+        <p>از قبل ثبت نام کرده‌ام. <a href="/login-page">ورود</a></p>
+    </div>
+</div>
+
+<div id="terms-modal">
+    <div class="modal-content">
+        <span class="close-modal">×</span>
+        <h3>شرایط و ضوابط</h3>
+        <ol>
+            <li>ایجاد نام کاربری و رمز عبور اختصاصی و مسئولیت حفظ آن بر عهده من است.</li>
+            <li>موافقت با دریافت کد تأیید هویت از طریق ربات تلگرام و ثبت آن در سامانه.</li>
+            <li>آگاه هستم که ربات تلگرام فقط برای ارسال کد احراز هویت عمل می‌کند و اطلاعات حساس ذخیره نمی‌شود.</li>
+            <li>شماره ملی صرفاً برای الزامات قانونی و KYC استفاده خواهد شد.</li>
+            <li>اطلاعات من مطابق قوانین بانک مرکزی و سیاست‌های حفظ حریم خصوصی محرمانه نگهداری می‌شود.</li>
+            <li>مسئولیت سوءاستفاده ناشی از ارائه اطلاعات کاربری یا کد احراز هویت به اشخاص ثالث بر عهده من است.</li>
+        </ol>
+        <div style="text-align:center; margin-top:20px;">
+            <button id="accept-terms" style="padding:10px 20px; background:#4CAF50; color:white; border:none; border-radius:5px; cursor:pointer;">موافقت و بستن</button>
+        </div>
+    </div>
+</div>
+
+<div id="chatid-modal">
+    <div class="modal-content">
+        <span class="close-modal-chatid">×</span>
+        <h3>راهنمای دریافت آیدی چت تلگرام و شروع ربات</h3>
+        <p>برای دریافت آیدی چت تلگرام خود و فعال کردن ربات احراز هویت، مراحل زیر را دنبال کنید:</p>
+        <ol>
+            <li>ابتدا ربات @userinfobot را باز کرده و با زدن /start چت آیدی خود را پیدا کنید</li>
+            <li>سپس وارد ربات @MFA_BANKING_BOT شوید و شروع (start) را بزنید و منتظر ارسال کد باشید</li>
+        </ol>
+        <div style="text-align:center; margin-top:20px;">
+            <button id="close-chatid" style="padding:10px 20px; background:#4CAF50; color:white; border:none; border-radius:5px; cursor:pointer;">باشه فهمیدم</button>
+        </div>
+    </div>
+</div>
+
+<script>
+const registerForm = document.getElementById('register-form');
+const verifyForm = document.getElementById('verify-form');
+const registerError = document.getElementById('register-error');
+const resendButton = document.getElementById('resend-code');
+
+const showTerms = document.getElementById('show-terms');
+const termsModal = document.getElementById('terms-modal');
+const acceptTerms = document.getElementById('accept-terms');
+const consentCheckbox = document.getElementById('consent');
+const closeModal = document.querySelector('.close-modal');
+
+const chatidInfo = document.getElementById('chatid-info');
+const chatidModal = document.getElementById('chatid-modal');
+const closeChatidModal = document.getElementById('close-chatid');
+const closeChatidX = document.querySelector('.close-modal-chatid');
+
+let currentUsername = '';
+let resendTimer;
+let countdown = 120;
+
+showTerms.addEventListener('click', () => { termsModal.style.display = 'flex'; });
+closeModal.addEventListener('click', () => { termsModal.style.display = 'none'; });
+acceptTerms.addEventListener('click', () => {
+    consentCheckbox.checked = true;
+    consentCheckbox.disabled = false;
+    termsModal.style.display = 'none';
+});
+
+chatidInfo.addEventListener('click', () => { chatidModal.style.display = 'flex'; });
+closeChatidModal.addEventListener('click', () => { chatidModal.style.display = 'none'; });
+closeChatidX.addEventListener('click', () => { chatidModal.style.display = 'none'; });
+
+function formatTime(seconds) {
+    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const s = (seconds % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+}
+
+function startResendCountdown() {
+    resendButton.disabled = true;
+    countdown = 120;
+    resendButton.textContent = `ارسال مجدد کد (${formatTime(countdown)})`;
+
+    resendTimer = setInterval(() => {
+        countdown--;
+        resendButton.textContent = `ارسال مجدد کد (${formatTime(countdown)})`;
+        if (countdown <= 0) {
+            clearInterval(resendTimer);
+            resendButton.textContent = 'ارسال مجدد کد';
+            resendButton.disabled = false;
+        }
+    }, 1000);
+}
+
+registerForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    registerError.textContent = '';
+
+    if (!consentCheckbox.checked) {
+        alert('لطفاً ابتدا شرایط و ضوابط را مطالعه کرده و با آن موافقت کنید.');
+        return;
+    }
+
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+    const meli_code = document.getElementById('meli_code').value;
+    const telegramChatId = document.getElementById('telegram-chat-id').value;
+
+    try {
+        const response = await fetch('/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password, meli_code, telegram_chat_id: telegramChatId }),
+        });
+        const data = await response.json();
+
+        if (response.ok) {
+            registerForm.style.display = 'none';
+            verifyForm.style.display = 'block';
+            currentUsername = username;
+            startResendCountdown();
+        } else {
+            registerError.textContent = data.message || 'خطا در ثبت نام';
+        }
+    } catch (err) {
+        alert('خطا در ثبت نام. دوباره تلاش کنید.');
+        console.error(err);
+    }
+});
+
+verifyForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    registerError.textContent = '';
+    const code = document.getElementById('verification-code').value;
+
+    try {
+        const response = await fetch('/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: currentUsername, code }),
+        });
+        const data = await response.json();
+
+        if (response.ok && data.message.includes('verified')) {
+            alert("اکانت شما تایید شد!");
+            window.location.href = '/login-page';
+        } else {
+            registerError.textContent = data.message || 'کد تایید اشتباه است';
+        }
+    } catch (err) {
+        alert('خطا در تایید. دوباره تلاش کنید.');
+        console.error(err);
+    }
+});
+
+resendButton.addEventListener('click', async () => {
+    resendButton.disabled = true;
+    registerError.textContent = '';
+
+    try {
+        const response = await fetch('/resend-code', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: currentUsername }),
+        });
+        const data = await response.json();
+
+        if (response.ok) {
+            alert('کد جدید ارسال شد!');
+            startResendCountdown();
+        } else {
+            registerError.textContent = data.message || 'خطا در ارسال مجدد کد';
+            resendButton.disabled = false;
+        }
+    } catch (err) {
+        alert('خطا در ارسال مجدد کد. دوباره تلاش کنید.');
+        console.error(err);
+        resendButton.disabled = false;
+    }
+});
+</script>
+
+</body>
+</html>

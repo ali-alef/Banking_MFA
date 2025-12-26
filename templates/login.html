@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>User Login with Telegram 2FA</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+<style>
+body {
+    font-family: 'Arial', sans-serif;
+    background: linear-gradient(120deg, #4CAF50, #2C8F5F);
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+.form-container {
+    background: white;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    width: 100%;
+    max-width: 400px;
+}
+.form-container h2 {
+    text-align: center;
+    color: #333;
+    font-size: 24px;
+    margin-bottom: 20px;
+}
+input {
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 16px;
+}
+button {
+    width: 100%;
+    padding: 12px;
+    background-color: #FF5722;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+}
+button:hover { background-color: #e64a19; }
+.error {
+    color: red;
+    font-size: 14px;
+    margin-top: 10px;
+    text-align: center;
+}
+.form-footer {
+    text-align: center;
+    margin-top: 20px;
+}
+.form-footer a {
+    color: #FF5722;
+    text-decoration: none;
+}
+.form-footer a:hover {
+    text-decoration: underline;
+}
+#resend-code {
+    margin-top: 10px;
+    background: #f39c12;
+}
+</style>
+</head>
+<body>
+
+<div class="form-container" id="form-container">
+    <h2>فرم ورود</h2>
+
+    <form id="login-form">
+        <input type="text" id="login-username" placeholder="نام کاربری" required>
+        <input type="password" id="login-password" placeholder="رمز عبور" required>
+        <button type="submit">ورود</button>
+    </form>
+
+    <form id="code-form" style="display:none;">
+        <input type="text" id="telegram-code" placeholder="کد تلگرام" required>
+        <button type="submit">تایید و ورود</button>
+        <button type="button" id="resend-code" disabled>ارسال مجدد کد (2:00)</button>
+    </form>
+
+    <p class="error" id="login-error"></p>
+    <div class="form-footer">
+        <p><a href="/register-page">ساخت اکانت جدید</a></p>
+    </div>
+</div>
+
+<script>
+const loginForm = document.getElementById('login-form');
+const codeForm = document.getElementById('code-form');
+const loginError = document.getElementById('login-error');
+const resendButton = document.getElementById('resend-code');
+
+let currentUsername = '';
+let resendTimer;
+let countdown = 120;
+
+function formatTime(seconds) {
+    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const s = (seconds % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+}
+
+function startResendCountdown() {
+    resendButton.disabled = true;
+    countdown = 120;
+    resendButton.textContent = `ارسال مجدد کد (${formatTime(countdown)})`;
+
+    resendTimer = setInterval(() => {
+        countdown--;
+        resendButton.textContent = `ارسال مجدد کد (${formatTime(countdown)})`;
+        if (countdown <= 0) {
+            clearInterval(resendTimer);
+            resendButton.textContent = 'ارسال مجدد کد';
+            resendButton.disabled = false;
+        }
+    }, 1000);
+}
+
+loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    loginError.textContent = '';
+    currentUsername = document.getElementById('login-username').value;
+    const password = document.getElementById('login-password').value;
+
+    try {
+        const response = await fetch('/login-step1', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({username: currentUsername, password})
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            loginForm.style.display = 'none';
+            codeForm.style.display = 'block';
+            alert("کد تایید به تلگرام شما ارسال شد لطفا کد را وارد کنید.");
+            startResendCountdown();
+        } else {
+            loginError.textContent = data.message;
+        }
+    } catch (err) {
+        loginError.textContent = 'امکان ورود در حال حاضر وجود ندارد.';
+    }
+});
+
+codeForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    loginError.textContent = '';
+    const code = document.getElementById('telegram-code').value;
+
+    try {
+        const response = await fetch('/login-step2', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({username: currentUsername, code})
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            alert('با موفقیت وارد شدید.');
+        } else {
+            loginError.textContent = data.message;
+        }
+    } catch (err) {
+        loginError.textContent = 'Verification failed. Try again.';
+    }
+});
+
+resendButton.addEventListener('click', async () => {
+    resendButton.disabled = true;
+    loginError.textContent = '';
+
+    try {
+        const response = await fetch('/resend-code', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({username: currentUsername})
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            alert('کد جدید ارسال شد!');
+            startResendCountdown();
+        } else {
+            loginError.textContent = data.message || 'خطا در ارسال مجدد کد';
+            resendButton.disabled = false;
+        }
+    } catch (err) {
+        loginError.textContent = 'خطا در ارسال مجدد کد. دوباره تلاش کنید.';
+        resendButton.disabled = false;
+    }
+});
+</script>
+
+</body>
+</html>
